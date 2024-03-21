@@ -1,0 +1,398 @@
+---
+title: "HW3"
+author: "Zhu Xiaohan"
+date: "2024-03-19"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+# Q1
+```{r}
+x1 <- c(574, 976, 789, 805, 361, 529)
+x2 <- c(791, 1146, 394, 767, 1385, 1021, 2073, 803, 1263, 1016, 1101, 945, 139)
+x3 <- c(865, 775, 729, 1721, 1113, 820, 1613, 1404, 1201, 205, 380, 580, 1803)
+x4 <- c(998, 1049, 736, 782, 730, 742, 1219, 705, 1260, 611, 1350, 1657, 1143)
+x5 <- c(1154, 541, 406, 1529, 1132, 767, 1224, 314, 1728)
+grps = rep(1:5, c(6, 13, 13, 13, 9))
+x <- c(x1, x2, x3, x4, x5)
+
+getmeans <- function(x,grps)
+{
+  #estimate the group-specific means
+  junk <- table(grps)
+  meanvec <- rep(NA,length(junk))
+  for (i in 1:length(junk)) meanvec[i] <- mean(x[grps==names(junk)[i]])
+  meanvec
+}
+
+getF <- function(x,grps)
+{
+  # estimate the F test statistic for one-way layout
+  junk <- table(grps)
+  SST <- sum(junk * (getmeans(x,grps))^2) -length(x)*(mean(x))^2
+  SST / (length(junk)-1) / ( (sum((x-mean(x))^2) - SST)/(length(x)-length(junk)))
+}
+
+perm.approx.F <- function(x,grps,R)
+{
+  #x: observed response vector
+  #grps: group number
+  #R: number of permutations
+  results <- rep(NA,R)
+  #for (i in 1:R) results[i] <- summary(aov(x[sample(1:(length(x)),length(x))] ~ factor(grps)))[1,4]
+  for (i in 1:R) results[i] <- getF(x[sample(1:(length(x)),length(x))],grps)
+  results
+}
+
+#(trtmeans <- getmeans(x,grps))
+
+# Observed F-value
+#Fobs <- summary(aov(x~factor(grps)))[[1]][1,4]
+Fobs = getF(x,grps)
+perm.F = perm.approx.F(x, grps, R=1000)
+(perm.pval = mean(perm.F >= Fobs))
+
+#ANOVA based on the assumption of normal distribution with equal variance
+summary(aov(x ~ factor(grps)))
+
+```
+From the results, we can see that the p-value of permutation F test is 0.549, and the p-value of ANOVA F test is 0.557.
+
+
+# Q2
+```{r}
+x1 <- c(0, 2, 1, 3, 1, 1)
+x2 <- c(2, 0, 3, 1, 3, 4)
+x3 <- c(1, 3, 4, 2, 2, 1)
+x4 <- c(3, 4, 2, 5, 3, 4)
+x <- c(x1, x2, x3, x4)
+grps <- rep(1:4, each = 6)
+
+rank.x = rank(x)
+
+# use f test to calculate KW statistics
+N = length(x)
+SST = summary(aov(rank.x ~ factor(grps)))[[1]][1,2]
+KW <- SST*12/(N*(N+1))
+KW
+
+
+# use equation to calculate KW statistics
+#sum <- 0
+#means = getmeans(rank.x, grps)
+#for (i in 1:4) {
+#  sum <- sum + (means[i]-(N+1)/2)^2 * 6
+#}
+#KW <- 12 * sum /(N * (N+1))
+
+# Kruskal-Wallis test with chi-square approximation
+#summary(aov(rank.x ~ factor(grps)))
+#kruskal.test(x,grps)
+
+
+
+# K-W test with permutation-based approx p-value
+Fobs <- getF(rank.x, grps)
+set.seed(123)
+permFs <- perm.approx.F(rank.x, grps, R=1000)
+mean(permFs >= Fobs)
+```
+The KW statistics is 7.295. Use permutation method to calculate the approximate p-value and the p-value is 0.054 > 0.05. We can not reject $H_0$
+
+# Q3
+```{r}
+library(clinfun)
+x1 <- c(574, 976, 789, 805, 361, 529)
+x2 <- c(791, 1146, 394, 767, 1385, 1021, 2073, 803, 1263, 1016, 1101, 945, 139)
+x3 <- c(865, 775, 729, 1721, 1113, 820, 1613, 1404, 1201, 205, 380, 580, 1803)
+x4 <- c(998, 1049, 736, 782, 730, 742, 1219, 705, 1260, 611, 1350, 1657, 1143)
+x5 <- c(1154, 541, 406, 1529, 1132, 767, 1224, 314, 1728)
+x <- c(x1, x2, x3, x4, x5)
+grps <- rep(1:5, c(6, 13, 13, 13, 9))
+jonckheere.test(x, grps, alternative="increasing") #based on MW test statistic
+```
+The p-value of JT test is 0.181.
+
+# Q4
+```{r}
+x1 <- c(49.17, 48.19, 48.93)
+x2 <- c(4.48, 4.43, 4.79)
+x3 <- c(6.36, 7.03, 5.36)
+x4 <- c(5.34, 4.86, 6.64)
+x5 <- c(5.17, 6.47, 6.58)
+x6 <- c(3.99, 5.89, 6.61)
+x7 <- c(6.02, 4.96, 6.30)
+x8 <- c(3.98, 6.30, 4.96)
+x9 <- c(5.94, 6.03, 5.56)
+x10 <- c(6.29, 5.11, 5.93)
+
+x <- c(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+grps <- rep(1:10, each = 3)
+xmeans <- getmeans(x, grps)
+
+perm.approx.diff <- function(x,n1,n2,R)
+{
+### approximate permutation of pairwise group means
+### n1: sample size of group 1
+### n2: sample size of group 2
+### x: combined data
+### R: number of random permutations
+### assumption: the observations in x are exchangeable under H0
+    results <- rep(NA,R)
+    for (i in 1:R)
+    {
+        temp <- x[sample(1:(length(x)),n1+n2)]
+        results[i] <- mean(temp[1:n1]) - mean(temp[(n1+1):(n1+n2)])
+    }
+    results
+}
+
+Fisher.LSD = function(x, grps, k, alpha=0.05, R=1000)
+{
+    #Fisher's Protected LSD
+    ##
+    ### overall test (permutation F-test)
+    Fobs = getF(x, grps)
+    perm.F = perm.approx.F(x, grps, R=R)
+    perm.pval = mean(perm.F >= Fobs)
+   nn <- table(factor(grps))
+
+    if(perm.pval<=alpha)
+    {
+        cat("the overall test is significant, proceed with pairwise comparison", "\n")
+
+        unadj.pvals <- matrix(NA,k,k)
+        for (i in 2:k) {
+            for (j in 1:(i-1)){
+                diff.perms = perm.approx.diff(x[grps %in% c(i, j)], nn[i], nn[j], R=R)
+                diff.obs = mean(x[grps==i]) - mean(x[grps==j])
+                unadj.pvals[i,j] <- mean(abs(diff.perms) >= abs(diff.obs))
+          }}
+        sig = (unadj.pvals <= alpha)
+        out = list(pval.overall= perm.pval, pval.pairwise= unadj.pvals, sig=sig)
+    }
+    else if(perm.pval>alpha)
+    {
+        cat("the overall test is not significant, do not proceed with pairwise comparison", "\n")
+        out = list(pval.overall= perm.pval)
+        }
+    return(out)
+}
+
+k <- length(xmeans)
+Fisher.LSD(x, grps, k, alpha = 0.05, R = 1000)
+
+```
+## (a)
+```{r}
+library(agricolae)
+x1 <- c(49.17, 48.19, 48.93)
+x2 <- c(4.48, 4.43, 4.79)
+x3 <- c(6.36, 7.03, 5.36)
+x4 <- c(5.34, 4.86, 6.64)
+x5 <- c(5.17, 6.47, 6.58)
+x6 <- c(3.99, 5.89, 6.61)
+x7 <- c(6.02, 4.96, 6.30)
+x8 <- c(3.98, 6.30, 4.96)
+x9 <- c(5.94, 6.03, 5.56)
+x10 <- c(6.29, 5.11, 5.93)
+
+x <- c(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
+grps <- rep(1:10, each = 3)
+xmeans <- getmeans(x, grps)
+fit <- aov(x~factor(grps))
+
+LSD.test(fit, "factor(grps)", console = T)
+```
+From the results, we can see that LSD can identify differences between treatment 1 and the rest. But it also identifies the difference between treatment 2 and treatment 3-10, although actually they have the same $\mu$.
+
+## (b)
+
+```{r}
+Bonf.adj = function(x, grps, k, alpha, R=1000, test=c("perm.meandiff", "ttest"))
+{
+    #Bonferroni correction
+    #alpha: overall significance level
+    #R: number of permutation
+    #test="perm.meandiff": pvalues are calculated through permutation test based on mean difference from two groups
+    #test="ttest": pvalues are calculated through pairwise two-sample t-test (requires normal distirbution assumption)
+
+    #output:
+    #adj.alpha: adjsuted significance level for each pairwise comparison
+    # bonf.pvals: p-val from pairwise comparison
+    # sig: TRUE means the two pairs are significantly different
+
+    nn <- table(factor(grps))
+    ## obtain the permutation p-value for comparing each pair (i, j)
+    bonf.pvals = matrix(NA, k, k)
+    if(test=="perm.meandiff")
+    {
+    for (i in 2:k) {
+        for (j in 1:(i-1)) {
+            diff.perms = perm.approx.diff(x[grps %in% c(i, j)], nn[i], nn[j], R=R)
+            diff.obs = mean(x[grps==i]) - mean(x[grps==j])
+            bonf.pvals[i,j] <- mean(abs(diff.perms) >= abs(diff.obs))
+          }}
+    }
+
+    if(test=="ttest")
+    {
+        for (i in 2:k) {
+        for (j in 1:(i-1)) {
+            bonf.pvals[i,j] = t.test(x[grps==i], x[grps==j])$p.value
+          }}
+    }
+    # For Bonferroni, compare each of the p-values against the adjusted level: alpha/(k(k-1)/2)
+    (adj.alpha = alpha / (k*(k-1)/2))
+    sig = (bonf.pvals <= adj.alpha)
+    out = list(adj.alpha=adj.alpha, bonf.pvals=bonf.pvals, sig=sig)
+    return(out)
+}
+
+set.seed(123)  #you can change the seed
+Bonf.adj(x, grps, k, alpha=0.05, R=1000, test="perm.meandiff")
+Bonf.adj(x, grps, k, alpha=0.05, R=1000, test="ttest")
+
+```
+
+```{r}
+
+getmaxTij <- function(x, grps, MSE)
+{
+    # estimate the maximum of Tij (pairwise mean diff) of a given data x
+    trtmeans <- getmeans(x,grps)
+   nn <- table(factor(grps))
+    k <- length(trtmeans)
+    Tijs <- matrix(NA,k,k)
+    for (i in 2:k) {
+    for (j in 1:(i-1)){
+         Tijs[i,j] <- abs(trtmeans[i] - trtmeans[j])/sqrt(MSE/2 * (1/nn[i] + 1/nn[j]))
+     }}
+    max(Tijs,na.rm=T)
+}
+
+perm.approx.maxTij <- function(x,grps,MSE,R)
+{
+    ### obtain the null permutation distribution of maxTij
+    results <- rep(NA,R)
+    for (i in 1:R) results[i] <- getmaxTij(x[sample(1:(length(x)),length(x))],grps,MSE)
+    results
+}
+
+Tukey.HSD = function(x, grps, k, alpha=0.05, R=1000)
+{
+    #Tukey's HSD
+    #summary(aov(x ~ factor(grps)))
+    nn <- table(factor(grps))
+    trtmeans <- getmeans(x,grps)
+
+    (MSE <- summary(aov(x ~ factor(grps)))[[1]][2,3])
+    ### observed Tij
+    Tijs <- matrix(NA,k,k)
+    for (i in 2:k){
+        for (j in 1:(i-1)){
+             Tijs[i,j] <- abs(trtmeans[i] - trtmeans[j])/sqrt(MSE/2 * (1/nn[i] + 1/nn[j]))
+             }}
+
+    ### observed maxTij
+    #getmaxTij(x,grps,MSE)
+
+    ### permutation maxTij
+    perm.maxTij <- perm.approx.maxTij(x,grps,MSE,R)
+
+    pvalsTij <- matrix(NA,k,k)
+    for (i in 2:k){
+    for (j in 1:(i-1)){
+        pvalsTij[i,j] <- mean(perm.maxTij >= Tijs[i,j])
+        }}
+
+    ### compare the pairwise pvalue with alpha
+    sig = (pvalsTij <= alpha)
+
+    out = list(sig=sig, pvalsTij= pvalsTij)
+    return(out)
+}
+Tukey.HSD(x, grps, k, alpha=0.05, R=1000)
+```
+Bonferroni method and Tukey's HSD can not recognize the differences among the means of treatments 2 through 10.
+
+# Q5
+```{r}
+set.seed(123)
+tr1 <- c(100, 250, 50, 80)
+tr2 <- c(112, 240, 58, 82)
+d <- tr2 - tr1
+R <- 10000
+srplus <- rep(NA, R)
+for (i in 1:R){
+  sign <- sample(c(0, 1), 4, replace = TRUE)
+  srplus[i] <- sign %*% abs(d)
+}
+
+a <- table(srplus)
+prop.table(a)
+```
+
+
+
+# Q6
+## (a)
+```{r}
+x1 <- c(1.5, 2.1, 1.9, 2.8, 1.4, 1.8)
+x2 <- c(1.8, 2, 2, 2.7, 1.6, 2.3)
+x3 <- c(1.9, 2.5, 2.5, 2.6, 2.1, 2.4)
+x <- c(x1, x2, x3)
+blocks = rep(1:6,3)
+grps = rep(1:3, each = 6)
+
+#F-test
+summary(aov(x~factor(grps)+factor(blocks)))
+
+
+#  Permutation Test for RCBD
+### Step 1: calculate observed SSTM:sum of squared group-means
+
+### calculate observed SSTM
+getSSTM <- function(x,grps)
+{
+    ## estimate SSTM=sum of squared group-means 
+    sum( (getmeans(x,grps))^2 )
+    }
+
+### obtain the permutation distribution of SSTM under H0
+###             i.e. obtain SSTM*'s with R permutations
+perm.approx.RCBD <- function(x,grps,blocks,R)
+{
+    # obtain the aprpoximate permutation distribution of SSTM under the null hypothesis
+    mat <- cbind(x,grps,blocks)
+    mat <- mat[order(mat[,3]),] 
+    k <- length(table(grps))
+    b <- length(table(blocks))
+    results <- rep(NA,R)
+    for (i in 1:R)
+    {
+        junk <- rep(NA,b*k)
+        for (j in 1:b) junk[k*(j-1)+(1:k)] <- sample(1:k,k)
+        results[i] <- getSSTM(mat[,1],junk)
+    }
+    results
+}
+SSTMobs <- getSSTM(x,grps)
+SSTMobs
+
+### Step 2: obtain the permutation distribution of SSTM under H0
+###             i.e. obtain SSTM*'s with R permutations
+
+permSSTM <- perm.approx.RCBD(x,grps,blocks,R=1000)
+
+### Step3: calculate the p-value
+(pval = mean(permSSTM >= SSTMobs))
+```
+
+## (b)
+```{r}
+summary(aov(x~blocks + grps))
+```
+ANOVA can not recogni the difference between treatments.
+
